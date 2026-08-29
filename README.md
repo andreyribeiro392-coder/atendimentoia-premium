@@ -1,3 +1,3 @@
 # OnTop Atendimento IA — Premium
 
-Configure `ACCESS_KEYS` na Vercel com códigos separados por vírgula, por exemplo `OTP-AAAA-BBBB,OTP-CCCC-DDDD`. A integração automática da Kiwify será adicionada quando o webhook e o checkout forem conectados.
+Versão inicial liberada por link direto para entrega na Kiwify. A validação por chave individual e a integração automática serão adicionadas na etapa final da API.
