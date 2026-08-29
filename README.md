@@ -1,4 +1,4 @@
-# OnTop Atendimento IA — Premium
+# OnTop Premium IA
 
 Área protegida com IA Groq, limite diário no Upstash, login por código enviado pela Brevo e integração Kiwify.
 
