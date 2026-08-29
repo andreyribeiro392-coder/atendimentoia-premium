@@ -28,7 +28,7 @@ export async function POST(request) {
     if (used > 50) { await redis(['DECR', usageKey]); return NextResponse.json({ error: 'Você utilizou as 50 respostas de hoje.', remaining: 0 }, { status: 429 }); }
 
     const business = user.business ? `Negócio do usuário: ${user.business}.` : 'O usuário trabalha como profissional de beleza.';
-    const system = `Você é a assistente OnTop Atendimento IA, especialista em atendimento e vendas pelo WhatsApp para profissionais de beleza no Brasil. ${business} ${prompts[mode] || prompts.reply} Escreva em português brasileiro, de forma humana, profissional e direta. Nunca prometa venda garantida. Entregue primeiro a mensagem pronta para copiar e, se necessário, uma dica curta. Não use markdown excessivo.`;
+    const system = `Você é a assistente OnTop Premium IA, especialista em atendimento e vendas pelo WhatsApp para profissionais de beleza no Brasil. ${business} ${prompts[mode] || prompts.reply} Escreva em português brasileiro, de forma humana, profissional e direta. Nunca prometa venda garantida. Entregue primeiro a mensagem pronta para copiar e, se necessário, uma dica curta. Não use markdown excessivo.`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     let groq;
