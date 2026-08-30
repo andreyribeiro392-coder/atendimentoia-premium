@@ -18,7 +18,9 @@ export async function GET() {
       priceRange: user.priceRange || '',
       hours: user.hours || '',
       location: user.location || '',
-      tone: user.tone || ''
+      tone: user.tone || '',
+      plan: String(user.plan || 'free').toLowerCase(),
+      planExpiresAt: user.planExpiresAt || null
     }
   });
 }
