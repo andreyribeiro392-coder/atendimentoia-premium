@@ -19,7 +19,7 @@ export async function POST(request) {
     if (!user || user.status !== 'active') return NextResponse.json({ error: 'Conta não encontrada ou bloqueada.' }, { status: 403 });
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     await saveUser({ ...user, email, plan: 'pro', planExpiresAt: expiresAt, paymentStatus: 'approved_test', source: 'test' });
-    return NextResponse.json({ ok: true, plan: 'pro', limit: 40, expiresAt });
+    return NextResponse.json({ ok: true, plan: 'pro', limit: 25, expiresAt });
   } catch (error) {
     console.error('[test/upgrade]', error);
     return NextResponse.json({ error: 'Não foi possível ativar o modo Pro de teste.' }, { status: 503 });
