@@ -28,7 +28,8 @@ function StudioHome() {
   const [generating, setGenerating] = useState(false), [generated, setGenerated] = useState(false), [activeChapter, setActiveChapter] = useState("fundamentos"), [toast, setToast] = useState("");
   const [projects, setProjects] = useState(seedProjects);
   const [draftText, setDraftText] = useState("");
-  const [theme, setTheme] = useState("light");\n  async function handleLogout() { await fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); window.location.reload(); }
+  const [theme, setTheme] = useState("light");
+  async function handleLogout() { await fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); window.location.reload(); }
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("ontop-studio-projects");
