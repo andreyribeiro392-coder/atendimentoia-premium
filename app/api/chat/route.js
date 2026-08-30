@@ -20,9 +20,10 @@ export async function POST(request) {
     if (!session?.email) return NextResponse.json({ error: 'Entre novamente para continuar.' }, { status: 401 });
     const user = await getJson(userKey(session.email));
     if (!user || user.status !== 'active') return NextResponse.json({ error: 'Acesso bloqueado.' }, { status: 403 });
-    const { message = '', mode = 'reply' } = await request.json();
+    const { message = '', mode = 'reply', context = [] } = await request.json();
     if (message.trim().length < 2 || message.length > 8000) return NextResponse.json({ error: 'Escreva uma mensagem com pelo menos 2 caracteres.' }, { status: 400 });
     if (!process.env.GROQ_API_KEY) throw new Error('Groq não configurada');
+    const contextMessages = Array.isArray(context) ? context.slice(-8).map(item => ({ role: item?.role === 'ai' ? 'assistant' : 'user', content: String(item?.text || '').slice(0, 1500) })).filter(item => item.content.trim()) : [];
 
     usageKey = `ontop:usage:${session.email}:${dayBR()}`;
     const used = Number(await redis(['INCR', usageKey]));
@@ -40,7 +41,7 @@ export async function POST(request) {
       groq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST', signal: controller.signal,
         headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'openai/gpt-oss-20b', temperature: 0.65, max_tokens: 700, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] })
+        body: JSON.stringify({ model: 'openai/gpt-oss-20b', temperature: 0.65, max_tokens: 700, messages: [{ role: 'system', content: system }, ...contextMessages, { role: 'user', content: message }] })
       });
     } finally { clearTimeout(timer); }
     const data = await groq.json();
