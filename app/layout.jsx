@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata={
-  title:'OnTop E-book Studio Premium',
-  description:'Crie e-books e produtos digitais profissionais com assistência de IA.',
+  title:'OnTop Oferta Lab',
+  description:'Transforme serviços e produtos em ofertas profissionais com assistência de IA.',
   icons:{icon:'/favicon.svg',shortcut:'/favicon.svg'},
 };
 
