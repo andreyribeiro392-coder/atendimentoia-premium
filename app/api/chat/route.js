@@ -18,7 +18,7 @@ export async function POST(request) {
     const user = await getJson(userKey(session.email));
     if (!user || user.status !== 'active') return NextResponse.json({ error: 'Acesso bloqueado.' }, { status: 403 });
     const { message = '', mode = 'reply' } = await request.json();
-    if (message.trim().length < 10 || message.length > 8000) return NextResponse.json({ error: 'Escreva uma mensagem com pelo menos 10 caracteres.' }, { status: 400 });
+    if (message.trim().length < 2 || message.length > 8000) return NextResponse.json({ error: 'Escreva uma mensagem com pelo menos 2 caracteres.' }, { status: 400 });
     if (!process.env.GROQ_API_KEY) throw new Error('Groq não configurada');
 
     usageKey = `ontop:usage:${session.email}:${dayBR()}`;
