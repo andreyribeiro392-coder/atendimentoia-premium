@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '../../../../lib/auth';
-import { getJson, userKey } from '../../../../lib/redis';
+import { getUser } from '../../../../lib/redis';
 
 export async function GET() {
   const session = await currentUser();
   if (!session?.email) return NextResponse.json({ authenticated: false }, { status: 401 });
-  const user = await getJson(userKey(session.email));
+  const user = await getUser((session.email));
   if (!user || user.status !== 'active') return NextResponse.json({ authenticated: false }, { status: 401 });
   return NextResponse.json({
     authenticated: true,
