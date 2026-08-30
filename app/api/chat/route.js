@@ -6,7 +6,9 @@ const prompts = {
   reply: 'Analise a conversa e escreva a melhor próxima resposta para tentar conseguir o agendamento sem pressionar.',
   promo: 'Crie uma promoção curta, atraente e específica para preencher horários disponíveis.',
   recover: 'Crie uma mensagem natural para retomar o contato com um cliente que parou de responder.',
-  help: 'Atue como consultor profissional: explique processos de atendimento e vendas passo a passo e, quando solicitado, crie mensagens prontas para copiar. Para cobranças, seja respeitoso, claro e nunca ameaçador.'
+  help: 'Atue como consultor profissional: explique processos de atendimento e vendas passo a passo e, quando solicitado, crie mensagens prontas para copiar. Para cobranças, seja respeitoso, claro e nunca ameaçador.',
+  analyze: 'Faça um Raio-X da conversa. Responda sempre nesta ordem: DIAGNÓSTICO (intenção e nível de interesse), ETAPA (novo contato, interessado, orçamento, agendamento ou pós-venda), OBJEÇÃO OU RISCO, PRÓXIMA AÇÃO, RESPOSTA PRONTA (3 versões: curta, natural e profissional) e FOLLOW-UP (quando e como retomar).',
+  quote: 'Monte um orçamento ou cobrança profissional. Organize: RESUMO DO SERVIÇO, VALOR, PRAZO, CONDIÇÕES, MENSAGEM PRONTA PARA COPIAR e OBSERVAÇÃO. Nunca invente preços ou condições que o usuário não informou.'
 };
 const dayBR = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
@@ -28,8 +30,9 @@ export async function POST(request) {
     if (used === 1) await redis(['EXPIRE', usageKey, 172800]);
     if (used > 50) { await redis(['DECR', usageKey]); return NextResponse.json({ error: 'Você utilizou as 50 respostas de hoje.', remaining: 0 }, { status: 429 }); }
 
-    const business = user.business ? `Negócio do usuário: ${user.business}.` : 'O usuário trabalha como profissional de beleza.';
-    const system = `Você é a assistente OnTop Premium IA, uma consultora profissional de atendimento, vendas e organização para pequenos negócios no Brasil. Você não é apenas um chat: ajuda a entender o que fazer, explica processos com clareza e cria textos prontos para copiar. ${business} ${prompts[mode] || prompts.help} Escreva em português brasileiro, de forma humana, profissional e direta. Quando o pedido for uma explicação, organize em passos práticos. Quando pedir uma mensagem, entregue primeiro o texto pronto para copiar e depois uma dica curta de personalização. Em cobranças, seja educado, objetivo e nunca use ameaça, constrangimento ou promessa de resultado. Nunca prometa venda garantida e não invente informações ausentes.`;
+    const profile = [['nome', user.businessName || user.business], ['serviços', user.services], ['faixa de preços', user.priceRange], ['horários', user.hours], ['localização', user.location], ['tom', user.tone]].filter(([, value]) => value).map(([label, value]) => `${label}: ${String(value).slice(0, 800)}`).join('; ');
+    const business = profile ? `Contexto do negócio: ${profile}.` : 'O usuário trabalha como profissional de beleza e ainda não configurou o perfil do negócio.';
+    const system = `Você é a assistente OnTop Premium IA, uma consultora profissional de atendimento, vendas e organização para pequenos negócios no Brasil. Você não é apenas um chat: ajuda a entender o que fazer, explica processos com clareza, cria textos prontos e orienta o próximo passo. ${business} ${prompts[mode] || prompts.help} Escreva em português brasileiro, de forma humana, profissional e direta. Quando o pedido for uma explicação, organize em passos práticos. Quando pedir uma mensagem, entregue primeiro o texto pronto para copiar e depois uma dica curta de personalização. Em cobranças, seja educado, objetivo e nunca use ameaça, constrangimento ou promessa de resultado. Nunca prometa venda garantida e não invente informações ausentes. Se faltarem dados para orçamento, liste claramente o que precisa ser informado antes de calcular.`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     let groq;
