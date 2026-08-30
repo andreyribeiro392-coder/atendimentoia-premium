@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getJson, metric, normalizeEmail, userKey } from '../../../../lib/redis';
+import { getJson, metric, normalizeEmail, redis, userKey } from '../../../../lib/redis';
 import { issueCode } from '../../../../lib/codes';
 
 export async function POST(request) {
@@ -11,6 +11,10 @@ export async function POST(request) {
       await metric('login_denied');
       return NextResponse.json({ error: 'Acesso não encontrado. Confira o e-mail usado na compra.' }, { status: 403 });
     }
+    const cooldownKey = `ontop:code-cooldown:${email}`;
+    const cooldown = await redis(['GET', cooldownKey]);
+    if (cooldown) return NextResponse.json({ error: 'Aguarde um minuto antes de solicitar outro código.' }, { status: 429 });
+    await redis(['SET', cooldownKey, '1', 'EX', 60]);
     await issueCode(email, user.name);
     await metric('codes_sent');
     return NextResponse.json({ ok: true });
