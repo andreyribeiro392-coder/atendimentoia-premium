@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '../../../lib/auth';
-import { getUser, normalizeEmail, redis } from '../../../lib/redis';
+import { getJson, getUser, normalizeEmail, redis } from '../../../lib/redis';
 
 const projectsKey = (email) => `ontop:projects:${normalizeEmail(email)}`;
 
@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const auth = await activeSession();
     if (!auth) return NextResponse.json({ error: 'Faça login para acessar seus projetos.' }, { status: 401 });
-    return NextResponse.json({ projects: (await getUser(projectsKey(auth.email))) || [] });
+    return NextResponse.json({ projects: (await getJson(projectsKey(auth.email))) || [] });
   } catch (error) {
     return NextResponse.json({ error: error?.message || 'Não foi possível carregar os projetos.' }, { status: 503 });
   }
