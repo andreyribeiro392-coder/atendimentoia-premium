@@ -5,7 +5,8 @@ import { getJson, metric, redis, userKey } from '../../../lib/redis';
 const prompts = {
   reply: 'Analise a conversa e escreva a melhor próxima resposta para tentar conseguir o agendamento sem pressionar.',
   promo: 'Crie uma promoção curta, atraente e específica para preencher horários disponíveis.',
-  recover: 'Crie uma mensagem natural para retomar o contato com um cliente que parou de responder.'
+  recover: 'Crie uma mensagem natural para retomar o contato com um cliente que parou de responder.',
+  help: 'Atue como consultor profissional: explique processos de atendimento e vendas passo a passo e, quando solicitado, crie mensagens prontas para copiar. Para cobranças, seja respeitoso, claro e nunca ameaçador.'
 };
 const dayBR = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 
@@ -28,7 +29,7 @@ export async function POST(request) {
     if (used > 50) { await redis(['DECR', usageKey]); return NextResponse.json({ error: 'Você utilizou as 50 respostas de hoje.', remaining: 0 }, { status: 429 }); }
 
     const business = user.business ? `Negócio do usuário: ${user.business}.` : 'O usuário trabalha como profissional de beleza.';
-    const system = `Você é a assistente OnTop Premium IA, especialista em atendimento e vendas pelo WhatsApp para profissionais de beleza no Brasil. ${business} ${prompts[mode] || prompts.reply} Escreva em português brasileiro, de forma humana, profissional e direta. Nunca prometa venda garantida. Entregue primeiro a mensagem pronta para copiar e, se necessário, uma dica curta. Não use markdown excessivo.`;
+    const system = `Você é a assistente OnTop Premium IA, uma consultora profissional de atendimento, vendas e organização para pequenos negócios no Brasil. Você não é apenas um chat: ajuda a entender o que fazer, explica processos com clareza e cria textos prontos para copiar. ${business} ${prompts[mode] || prompts.help} Escreva em português brasileiro, de forma humana, profissional e direta. Quando o pedido for uma explicação, organize em passos práticos. Quando pedir uma mensagem, entregue primeiro o texto pronto para copiar e depois uma dica curta de personalização. Em cobranças, seja educado, objetivo e nunca use ameaça, constrangimento ou promessa de resultado. Nunca prometa venda garantida e não invente informações ausentes.`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     let groq;
