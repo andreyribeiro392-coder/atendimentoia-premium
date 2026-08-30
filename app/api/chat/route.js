@@ -34,18 +34,23 @@ export async function POST(request) {
     const profile = [['nome', user.businessName || user.business], ['serviços', user.services], ['faixa de preços', user.priceRange], ['horários', user.hours], ['localização', user.location], ['tom', user.tone]].filter(([, value]) => value).map(([label, value]) => `${label}: ${String(value).slice(0, 800)}`).join('; ');
     const business = profile ? `Contexto do negócio: ${profile}.` : 'O usuário trabalha como profissional de beleza e ainda não configurou o perfil do negócio.';
     const system = `Você é a assistente OnTop Premium IA, uma consultora profissional de atendimento, vendas e organização para pequenos negócios no Brasil. Você não é apenas um chat: ajuda a entender o que fazer, explica processos com clareza, cria textos prontos e orienta o próximo passo. ${business} ${prompts[mode] || prompts.help} Escreva em português brasileiro, de forma humana, profissional e direta. Quando o pedido for uma explicação, organize em passos práticos. Quando pedir uma mensagem, entregue primeiro o texto pronto para copiar e depois uma dica curta de personalização. Em cobranças, seja educado, objetivo e nunca use ameaça, constrangimento ou promessa de resultado. Nunca prometa venda garantida e não invente informações ausentes. Se faltarem dados para orçamento, liste claramente o que precisa ser informado antes de calcular.`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    let groq;
-    try {
-      groq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST', signal: controller.signal,
-        headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'openai/gpt-oss-20b', temperature: 0.65, max_tokens: 700, messages: [{ role: 'system', content: system }, ...contextMessages, { role: 'user', content: message }] })
-      });
-    } finally { clearTimeout(timer); }
-    const data = await groq.json();
-    if (!groq.ok) throw new Error(data?.error?.message || 'Falha na Groq');
+    let data = null;
+    let lastError = '';
+    for (const model of ['openai/gpt-oss-20b', 'llama-3.3-70b-versatile']) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      try {
+        const groq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST', signal: controller.signal,
+          headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, temperature: 0.65, max_tokens: 700, messages: [{ role: 'system', content: system }, ...contextMessages, { role: 'user', content: message }] })
+        });
+        data = await groq.json();
+        if (groq.ok) break;
+        lastError = data?.error?.message || 'Falha na Groq';
+      } finally { clearTimeout(timer); }
+    }
+    if (!data?.choices?.[0]?.message?.content) throw new Error(lastError || 'Falha na Groq');
     const answer = data.choices?.[0]?.message?.content?.trim();
     await Promise.all([
       redis(['LPUSH', `ontop:history:${session.email}`, JSON.stringify({ at: new Date().toISOString(), mode, message: message.slice(0, 1500), answer })]),
