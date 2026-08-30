@@ -9,7 +9,7 @@ export async function POST(request) {
     const user = await getUser((email));
     if (!user || user.status !== 'active') {
       await metric('login_denied');
-      return NextResponse.json({ error: 'Acesso não encontrado. Confira o e-mail usado na compra.' }, { status: 403 });
+      return NextResponse.json({ error: 'Cadastro não encontrado. Crie uma conta ou confira o e-mail informado.' }, { status: 403 });
     }
     const cooldownKey = `ontop:code-cooldown:${email}`;
     const cooldown = await redis(['GET', cooldownKey]);
