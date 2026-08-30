@@ -15,6 +15,7 @@ export async function POST(request) {
     await metric('codes_sent');
     return NextResponse.json({ ok: true });
   } catch (error) {
+    console.error('[auth/request-code] failed', { message: error?.message, name: error?.name });
     await metric('email_errors');
     return NextResponse.json({ error: 'Não conseguimos enviar o código agora. Tente novamente.' }, { status: 500 });
   }
