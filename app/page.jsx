@@ -66,9 +66,8 @@ function AppShell({ user, onRequireAuth, onLogout }) {
   async function generate() {
     if (form.service.trim().length < 3) return notify("Informe o que você vende.");
     setGenerating(true); setResult(null);
-    const prompt = \`Crie uma oferta comercial profissional para este negócio. Entregue JSON válido com title, subtitle, promise, benefits, message e nextStep. Serviço/produto: \${form.service}. Público: \${form.audience || "não informado"}. Preço: \${form.price || "não informado"}. Resultado desejado: \${form.result || "não informado"}. Diferencial: \${form.difference || "não informado"}. Tipo: \${form.type}. Não invente preço. Escreva em português brasileiro.\`;
     try {
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: prompt, mode: "quote" }) });
+      const response = await fetch("/api/offer/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) { notify(data.error || "A IA não conseguiu gerar agora."); return; }
       let parsed = null; try { parsed = JSON.parse(data.answer); } catch {}
