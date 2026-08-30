@@ -53,6 +53,34 @@ export async function POST(request) {
   }
 }
 
+export async function PUT(request) {
+  try {
+    const auth = await activeSession();
+    if (!auth) return NextResponse.json({ error: 'Entre novamente para continuar.' }, { status: 401 });
+    const { id = '', ...body } = await request.json();
+    const rows = await redis(['LRANGE', key(auth.session.email), 0, 99]);
+    const current = (rows || []).map(row => { try { return JSON.parse(row); } catch { return null; } }).find(item => item?.id === id);
+    if (!current) return NextResponse.json({ error: 'Contato não encontrado.' }, { status: 404 });
+    const updated = {
+      ...current,
+      name: String(body.name || current.name).trim().slice(0, 120),
+      service: String(body.service || '').trim().slice(0, 160),
+      status: allowed.has(body.status) ? body.status : current.status,
+      notes: String(body.notes || '').trim().slice(0, 800),
+      nextFollowUp: String(body.nextFollowUp || '').trim().slice(0, 20),
+      updatedAt: new Date().toISOString()
+    };
+    if (updated.name.length < 2) return NextResponse.json({ error: 'Informe o nome do contato.' }, { status: 400 });
+    await redis(['LREM', key(auth.session.email), 1, JSON.stringify(current)]);
+    await redis(['LPUSH', key(auth.session.email), JSON.stringify(updated)]);
+    await metric('contacts_updated');
+    return NextResponse.json({ ok: true, contact: updated });
+  } catch (error) {
+    console.error('[contacts:put] failed', { message: error?.message });
+    return NextResponse.json({ error: 'Não foi possível atualizar o contato agora.' }, { status: 503 });
+  }
+}
+
 export async function DELETE(request) {
   try {
     const auth = await activeSession();
