@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '../../../lib/auth';
-import { getJson, normalizeEmail, saveUser, userKey } from '../../../lib/redis';
+import { currentUser } from '../../../../lib/auth';
+import { getJson, normalizeEmail, saveUser, userKey } from '../../../../lib/redis';
 
 export async function POST(request) {
   if (process.env.TEST_PAYMENT_MODE !== 'true') {
