@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, BookOpen, Check, ChevronRight, Download, FileText, FolderOpen, Layers3, LayoutDashboard, Library, Lightbulb, Menu, MoreHorizontal, PenLine, Plus, Sparkles, Target, WandSparkles, X } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ChevronRight, Crown, Download, FileText, FolderOpen, Layers3, LayoutDashboard, Library, Lightbulb, Mail, Menu, MoreHorizontal, PenLine, Plus, RefreshCw, Sparkles, Target, WandSparkles, X } from "lucide-react";
 
 const templates = [
   { id: "guia", title: "Guia prático", description: "Passo a passo para ensinar uma transformação", color: "#7c5cff", pages: "18–32 páginas" },
@@ -22,7 +22,7 @@ const defaultChapters = [
 ];
 function Logo() { return <div className="brand-mark"><Sparkles size={18} strokeWidth={2.5} /><span>OnTop</span><small>STUDIO</small></div>; }
 
-export default function Home() {
+function StudioHome() {
   const [view, setView] = useState("dashboard"), [mobileMenu, setMobileMenu] = useState(false), [selectedTemplate, setSelectedTemplate] = useState("guia");
   const [topic, setTopic] = useState(""), [audience, setAudience] = useState(""), [goal, setGoal] = useState("Ensinar e gerar autoridade"), [tone, setTone] = useState("Prático e acolhedor"), [pages, setPages] = useState("18");
   const [generating, setGenerating] = useState(false), [generated, setGenerated] = useState(false), [activeChapter, setActiveChapter] = useState("fundamentos"), [toast, setToast] = useState("");
@@ -55,3 +55,37 @@ function Editor({ topic, audience, tone, selected, activeChapter, setActiveChapt
 
 function LibraryView({ projects, onCreate, onOpen }) { return <div className="page-content library-page"><div className="library-header"><div><span className="section-kicker">BIBLIOTECA</span><h1>Meus projetos</h1><p>Todos os produtos que você está construindo.</p></div><button className="primary-button compact" onClick={onCreate}><Plus size={17} />Novo projeto</button></div><div className="library-filter"><div className="fake-search">⌕ <span>Buscar projeto</span></div><button className="filter-button">Todos os formatos <ChevronRight size={14} /></button></div><div className="library-table"><div className="table-head"><span>PROJETO</span><span>FORMATO</span><span>ATUALIZADO</span><span>STATUS</span></div>{projects.map((project) => <button className="table-row" key={project.title} onClick={() => onOpen(project)}><div className="table-project"><div className="tiny-cover" style={{ background: project.color }}><BookOpen size={14} /></div><b>{project.title}</b></div><span>{project.type}</span><span>{project.updated}</span><span className={project.progress === 100 ? "status done" : "status draft"}>{project.progress === 100 ? "Publicado" : "Em criação"}</span><ChevronRight size={15} /></button>)}</div></div>; }
 
+
+function Access({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState("email");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  useEffect(() => { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "login_view" }) }).catch(() => {}); }, []);
+  async function submit(event) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    const endpoint = step === "email" ? "/api/auth/request-code" : "/api/auth/verify-code";
+    const body = step === "email" ? { email } : { email, code };
+    try {
+      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { setError(data.error || "Não foi possível continuar agora."); return; }
+      if (step === "email") { setStep("code"); setNotice("Código enviado. Confira sua caixa de entrada e a pasta de spam."); } else onLogin();
+    } catch { setError("Não foi possível conectar ao servidor. Tente novamente em alguns segundos."); }
+    finally { setBusy(false); }
+  }
+  return <main className="access-page"><div className="access-orbit" /><section className="access-card"><div className="access-brand"><span><Sparkles size={18} /></span><div><b>OnTop</b><small>E-BOOK STUDIO</small></div></div><div className="access-kicker"><Crown size={14} /> ÁREA PREMIUM</div><h1>{step === "email" ? "Seu estúdio está pronto." : "Confira seu e-mail."}</h1><p>{step === "email" ? "Digite o e-mail usado na compra para receber seu código de acesso." : <>Enviamos um código de 6 números para <b>{email}</b>.</>}</p><form onSubmit={submit}>{step === "email" ? <label><Mail size={18} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" autoFocus required /></label> : <label className="access-code"><input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\\D/g, ""))} placeholder="000000" autoFocus required /></label>}{error && <div className="access-error" role="alert">{error}</div>}{notice && <div className="access-notice" role="status">{notice}</div>}<button disabled={busy}>{busy ? <RefreshCw className="access-spin" size={18} /> : <>{step === "email" ? "RECEBER CÓDIGO" : "ENTRAR NO STUDIO"}<ArrowRight size={17} /></>}</button></form>{step === "code" && <button type="button" className="access-back" onClick={() => { setStep("email"); setCode(""); setError(""); setNotice(""); }}>Usar outro e-mail</button>}<div className="access-safe"><Check size={13} /> Acesso individual e protegido</div></section></main>;
+}
+
+export default function Home() {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  async function check() { try { const response = await fetch("/api/auth/me", { cache: "no-store" }); if (response.ok) { const data = await response.json(); setUser(data.user); } } catch {} finally { setLoading(false); } }
+  useEffect(() => { check(); }, []);
+  if (loading) return <main className="access-loading"><Sparkles className="access-spin" size={22} /><span>Verificando seu acesso...</span></main>;
+  return user ? <StudioHome /> : <Access onLogin={check} />;
+}
