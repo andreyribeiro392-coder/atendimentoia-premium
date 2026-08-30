@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '../../lib/auth';
-import { getJson, metric, saveUser, userKey } from '../../lib/redis';
+import { currentUser } from '../../../lib/auth';
+import { getJson, metric, saveUser, userKey } from '../../../lib/redis';
 
 const fields = ['businessName', 'services', 'priceRange', 'hours', 'location', 'tone'];
 
