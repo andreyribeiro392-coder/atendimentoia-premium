@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '../../../../lib/auth';
 import { getJson, normalizeEmail, redis, userKey } from '../../../../lib/redis';
 
-const limitFor = (user) => ['pro', 'premium'].includes(String(user?.plan || '').toLowerCase()) ? 40 : 3;
+const limitFor = (user) => ['pro', 'premium'].includes(String(user?.plan || '').toLowerCase()) ? 25 : 3;
 const dateKey = () => new Date().toISOString().slice(0, 10);
 
 function fallback(brief = {}) {
