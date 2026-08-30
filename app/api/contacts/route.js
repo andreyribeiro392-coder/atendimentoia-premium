@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { currentUser } from '../../lib/auth';
-import { getJson, metric, normalizeEmail, redis, userKey } from '../../lib/redis';
+import { currentUser } from '../../../lib/auth';
+import { getJson, metric, normalizeEmail, redis, userKey } from '../../../lib/redis';
 
 const key = email => `ontop:contacts:${normalizeEmail(email)}`;
 const allowed = new Set(['novo', 'interessado', 'orcamento', 'agendado', 'concluido']);
