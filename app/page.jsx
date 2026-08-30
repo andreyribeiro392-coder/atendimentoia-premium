@@ -112,6 +112,8 @@ function LibraryView({ projects, onCreate, onOpen }) { return <div className="pa
 
 
 function Access({ onLogin, onClose }) {
+  const [mode, setMode] = useState("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState("email");
@@ -123,9 +125,14 @@ function Access({ onLogin, onClose }) {
     event.preventDefault();
     if (busy) return;
     setBusy(true); setError(""); setNotice("");
-    const endpoint = step === "email" ? "/api/auth/request-code" : "/api/auth/verify-code";
-    const body = step === "email" ? { email } : { email, code };
     try {
+      if (step === "email" && mode === "register") {
+        const registerResponse = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email }) });
+        const registerData = await registerResponse.json().catch(() => ({}));
+        if (!registerResponse.ok) { setError(registerData.error || "Não foi possível criar a conta."); return; }
+      }
+      const endpoint = step === "email" ? "/api/auth/request-code" : "/api/auth/verify-code";
+      const body = step === "email" ? { email } : { email, code };
       const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) { setError(data.error || "Não foi possível continuar agora."); return; }
@@ -133,7 +140,8 @@ function Access({ onLogin, onClose }) {
     } catch { setError("Não foi possível conectar ao servidor. Tente novamente em alguns segundos."); }
     finally { setBusy(false); }
   }
-  return <main className="access-page"><div className="access-orbit" /><section className="access-card">{onClose && <button type="button" className="access-close" onClick={onClose} aria-label="Fechar">×</button>}<div className="access-brand"><span><Sparkles size={18} /></span><div><b>OnTop</b><small>E-BOOK STUDIO</small></div></div><div className="access-kicker"><Crown size={14} /> ÁREA PREMIUM</div><h1>{step === "email" ? "Seu estúdio está pronto." : "Confira seu e-mail."}</h1><p>{step === "email" ? "Digite o e-mail usado na compra para receber seu código de acesso." : <>Enviamos um código de 6 números para <b>{email}</b>.</>}</p><form onSubmit={submit}>{step === "email" ? <label><Mail size={18} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" autoFocus required /></label> : <label className="access-code"><input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" autoFocus required /></label>}{error && <div className="access-error" role="alert">{error}</div>}{notice && <div className="access-notice" role="status">{notice}</div>}<button disabled={busy}>{busy ? <RefreshCw className="access-spin" size={18} /> : <>{step === "email" ? "RECEBER CÓDIGO" : "ENTRAR NO STUDIO"}<ArrowRight size={17} /></>}</button></form>{step === "code" && <button type="button" className="access-back" onClick={() => { setStep("email"); setCode(""); setError(""); setNotice(""); }}>Usar outro e-mail</button>}<div className="access-safe"><Check size={13} /> Acesso individual e protegido</div></section></main>;
+  function switchMode() { setMode(mode === "login" ? "register" : "login"); setStep("email"); setCode(""); setError(""); setNotice(""); }
+  return <main className="access-page"><div className="access-orbit" /><section className="access-card">{onClose && <button type="button" className="access-close" onClick={onClose} aria-label="Fechar">×</button>}<div className="access-brand"><span><Sparkles size={18} /></span><div><b>OnTop</b><small>E-BOOK STUDIO</small></div></div><div className="access-kicker"><Crown size={14} /> {mode === "register" ? "CRIAR CONTA" : "ENTRAR NO STUDIO"}</div><h1>{step === "email" ? (mode === "register" ? "Comece gratuitamente." : "Seu estúdio está pronto.") : "Confira seu e-mail."}</h1><p>{step === "email" ? (mode === "register" ? "Crie sua conta e receba 3 criações gratuitas por dia." : "Digite seu e-mail para receber um código de acesso.") : <>Enviamos um código de 6 números para <b>{email}</b>.</>}</p><form onSubmit={submit}>{step === "email" ? <>{mode === "register" && <label><PenLine size={18} /><input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" autoComplete="name" autoFocus required /></label>}<label><Mail size={18} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" autoComplete="email" autoFocus={mode !== "register"} required /></label></> : <label className="access-code"><input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" autoFocus required /></label>}{error && <div className="access-error" role="alert">{error}</div>}{notice && <div className="access-notice" role="status">{notice}</div>}<button disabled={busy}>{busy ? <RefreshCw className="access-spin" size={18} /> : <>{step === "email" ? (mode === "register" ? "CRIAR CONTA" : "RECEBER CÓDIGO") : "ENTRAR NO STUDIO"}<ArrowRight size={17} /></>}</button></form>{step === "code" && <button type="button" className="access-back" onClick={() => { setStep("email"); setCode(""); setError(""); setNotice(""); }}>Usar outro e-mail</button>}<button type="button" className="access-switch" onClick={switchMode}>{mode === "login" ? "Ainda não tenho conta — criar cadastro" : "Já tenho conta — entrar"}</button><div className="access-safe"><Check size={13} /> Acesso individual e protegido</div></section></main>;
 }
 
 export default function Home() {
