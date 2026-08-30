@@ -11,6 +11,7 @@ const prompts = {
   quote: 'Monte um orçamento ou cobrança profissional. Organize: RESUMO DO SERVIÇO, VALOR, PRAZO, CONDIÇÕES, MENSAGEM PRONTA PARA COPIAR e OBSERVAÇÃO. Nunca invente preços ou condições que o usuário não informou.'
 };
 const dayBR = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const limitFor = user => ['pro', 'premium'].includes(String(user?.plan || '').toLowerCase()) ? 40 : 3;
 
 export async function POST(request) {
   let usageKey = '';
@@ -20,6 +21,7 @@ export async function POST(request) {
     if (!session?.email) return NextResponse.json({ error: 'Entre novamente para continuar.' }, { status: 401 });
     const user = await getJson(userKey(session.email));
     if (!user || user.status !== 'active') return NextResponse.json({ error: 'Acesso bloqueado.' }, { status: 403 });
+    const dailyLimit = limitFor(user);
     const { message = '', mode = 'reply', context = [] } = await request.json();
     if (message.trim().length < 2 || message.length > 8000) return NextResponse.json({ error: 'Escreva uma mensagem com pelo menos 2 caracteres.' }, { status: 400 });
     if (!process.env.GROQ_API_KEY) throw new Error('Groq não configurada');
@@ -29,7 +31,7 @@ export async function POST(request) {
     const used = Number(await redis(['INCR', usageKey]));
     reserved = true;
     if (used === 1) await redis(['EXPIRE', usageKey, 172800]);
-    if (used > 50) { await redis(['DECR', usageKey]); return NextResponse.json({ error: 'Você utilizou as 50 respostas de hoje.', remaining: 0 }, { status: 429 }); }
+    if (used > dailyLimit) { await redis(['DECR', usageKey]); return NextResponse.json({ error: `Você utilizou as ${dailyLimit} respostas de hoje.`, remaining: 0 }, { status: 429 }); }
 
     const profile = [['nome', user.businessName || user.business], ['serviços', user.services], ['faixa de preços', user.priceRange], ['horários', user.hours], ['localização', user.location], ['tom', user.tone]].filter(([, value]) => value).map(([label, value]) => `${label}: ${String(value).slice(0, 800)}`).join('; ');
     const business = profile ? `Contexto do negócio: ${profile}.` : 'O usuário trabalha como profissional de beleza e ainda não configurou o perfil do negócio.';
@@ -57,7 +59,7 @@ export async function POST(request) {
       metric('ai_answers')
     ]);
     await redis(['LTRIM', `ontop:history:${session.email}`, 0, 99]);
-    return NextResponse.json({ answer, remaining: 50 - used });
+    return NextResponse.json({ answer, remaining: Math.max(0, dailyLimit - used), plan: String(user.plan || 'free').toLowerCase() });
   } catch (error) {
     if (reserved && usageKey) await redis(['DECR', usageKey]).catch(() => {});
     console.error('[premium/chat] failed', { message: error?.message, name: error?.name });
@@ -70,11 +72,14 @@ export async function GET() {
   try {
     const session = await currentUser();
     if (!session?.email) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    const user = await getJson(userKey(session.email));
+    if (!user || user.status !== 'active') return NextResponse.json({ error: 'Acesso bloqueado.' }, { status: 403 });
+    const dailyLimit = limitFor(user);
     const [used, history] = await Promise.all([
       redis(['GET', `ontop:usage:${session.email}:${dayBR()}`]),
       redis(['LRANGE', `ontop:history:${session.email}`, 0, 29])
     ]);
-    return NextResponse.json({ used: Number(used || 0), remaining: Math.max(0, 50 - Number(used || 0)), history: (history || []).map(item => { try { return JSON.parse(item); } catch { return null; } }).filter(Boolean) });
+    return NextResponse.json({ used: Number(used || 0), remaining: Math.max(0, dailyLimit - Number(used || 0)), limit: dailyLimit, plan: String(user.plan || 'free').toLowerCase(), history: (history || []).map(item => { try { return JSON.parse(item); } catch { return null; } }).filter(Boolean) });
   } catch (error) {
     console.error('[premium/chat:get] failed', { message: error?.message });
     return NextResponse.json({ error: 'Não foi possível carregar seu histórico agora.' }, { status: 503 });
