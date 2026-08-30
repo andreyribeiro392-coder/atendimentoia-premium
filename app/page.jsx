@@ -27,6 +27,7 @@ function StudioHome({ user, onRequireAuth }) {
   const [topic, setTopic] = useState(""), [audience, setAudience] = useState(""), [goal, setGoal] = useState("Ensinar e gerar autoridade"), [tone, setTone] = useState("Prático e acolhedor"), [pages, setPages] = useState("18");
   const [generating, setGenerating] = useState(false), [generated, setGenerated] = useState(false), [activeChapter, setActiveChapter] = useState("fundamentos"), [toast, setToast] = useState("");
   const [projects, setProjects] = useState(seedProjects);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [draftText, setDraftText] = useState("");
   const [theme, setTheme] = useState("light");
   async function handleLogout() { await fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); window.location.reload(); }
@@ -45,7 +46,19 @@ function StudioHome({ user, onRequireAuth }) {
       if (savedTheme === "dim") setTheme("dim");
     } catch { /* storage is optional */ }
   }, []);
-  useEffect(() => { try { window.localStorage.setItem("ontop-studio-projects", JSON.stringify(projects)); } catch { /* storage is optional */ } }, [projects]);
+  useEffect(() => {
+    if (!user) { setProjectsLoaded(false); return; }
+    fetch("/api/projects", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (Array.isArray(data?.projects) && data.projects.length) setProjects(data.projects); setProjectsLoaded(true); })
+      .catch(() => setProjectsLoaded(true));
+  }, [user]);
+  useEffect(() => {
+    try { window.localStorage.setItem("ontop-studio-projects", JSON.stringify(projects)); } catch { /* storage is optional */ }
+    if (user && projectsLoaded) {
+      fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ projects }) }).catch(() => {});
+    }
+  }, [projects, user, projectsLoaded]);
   useEffect(() => { try { window.localStorage.setItem("ontop-studio-theme", theme); } catch { /* storage is optional */ } }, [theme]);
   const selected = useMemo(() => templates.find((item) => item.id === selectedTemplate) ?? templates[0], [selectedTemplate]);
   function notify(message) { setToast(message); window.setTimeout(() => setToast(""), 2600); }
