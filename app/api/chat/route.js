@@ -36,7 +36,7 @@ export async function POST(request) {
       groq = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST', signal: controller.signal,
         headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', temperature: 0.65, max_tokens: 700, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] })
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', temperature: 0.65, max_tokens: 700, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] })
       });
     } finally { clearTimeout(timer); }
     const data = await groq.json();
