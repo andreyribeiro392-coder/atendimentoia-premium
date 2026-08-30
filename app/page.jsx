@@ -70,8 +70,8 @@ function AppShell({ user, onRequireAuth, onLogout }) {
       const response = await fetch("/api/offer/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) { notify(data.error || "A IA não conseguiu gerar agora."); return; }
-      let parsed = null; try { parsed = JSON.parse(data.answer); } catch {}
-      const finalResult = parsed && typeof parsed === "object" ? parsed : { title: form.service, subtitle: "Oferta pronta para revisar", answer: data.answer };
+      let parsed = null; try { parsed = data?.title ? data : JSON.parse(data.answer || ""); } catch {}
+      const finalResult = parsed && typeof parsed === "object" ? parsed : { title: form.service, subtitle: "Oferta pronta para revisar", answer: data.answer || "Revise os detalhes da oferta." };
       setResult(finalResult); setView("result");
       const project = { title: finalResult.title || form.service, type: "Oferta comercial", updated: "agora", pages: 1, progress: 100, color: form.type === "promocao" ? "#ff9f68" : form.type === "produto" ? "#18cbb8" : "#8b5cf6", text: finalResult.subtitle || "Oferta criada com IA." };
       const nextProjects = [project, ...projects.filter((item) => item.title !== project.title)].slice(0, 100);
