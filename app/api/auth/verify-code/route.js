@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSession, hashCode, secureEqual } from '../../../../lib/auth';
-import { getJson, metric, normalizeEmail, redis, userKey } from '../../../../lib/redis';
+import { getUser, metric, normalizeEmail, redis } from '../../../../lib/redis';
 
 export async function POST(request) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request) {
     }
     const [stored, user] = await Promise.all([
       redis(['GET', `ontop:code:${email}`]),
-      getJson(userKey(email))
+      getUser((email))
     ]);
     if (!stored || !user || user.status !== 'active' || !secureEqual(stored, hashCode(email, code))) {
       await metric('invalid_codes');
